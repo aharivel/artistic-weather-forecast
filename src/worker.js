@@ -733,10 +733,34 @@ async function getIndexHTML() {
         
         function saveImage() {
             if (currentImageData && currentImageData.imageUrl) {
-                const link = document.createElement('a');
-                link.href = currentImageData.imageUrl;
-                link.download = \`artistic-weather-\${Date.now()}.png\`;
-                link.click();
+                try {
+                    // Convert data URL to blob for proper download
+                    const base64Data = currentImageData.imageUrl.split(',')[1];
+                    const mimeType = currentImageData.imageUrl.match(/data:([^;]+);/)[1];
+                    
+                    // Convert base64 to binary
+                    const byteCharacters = atob(base64Data);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    
+                    // Create blob and download
+                    const blob = new Blob([byteArray], { type: mimeType });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = \`artistic-weather-\${Date.now()}.png\`;
+                    link.click();
+                    
+                    // Clean up
+                    URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('Error saving image:', error);
+                    alert('Error saving image. Please try again.');
+                }
             }
         }
         
