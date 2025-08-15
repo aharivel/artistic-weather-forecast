@@ -226,6 +226,23 @@ async function generateArtwork(prompt, style, env) {
         throw new Error('Empty image data received from AI model');
       }
       
+      // Check for valid image headers
+      const firstBytes = Array.from(combinedArray.slice(0, 10));
+      const isPNG = firstBytes[0] === 137 && firstBytes[1] === 80 && firstBytes[2] === 78 && firstBytes[3] === 71;
+      const isJPEG = firstBytes[0] === 255 && firstBytes[1] === 216;
+      const isWebP = firstBytes[8] === 87 && firstBytes[9] === 69 && firstBytes[10] === 66 && firstBytes[11] === 80;
+      
+      console.log('Image format detection:');
+      console.log('- PNG header:', isPNG);
+      console.log('- JPEG header:', isJPEG);  
+      console.log('- WebP header:', isWebP);
+      
+      let mimeType = 'image/png'; // default
+      if (isJPEG) mimeType = 'image/jpeg';
+      else if (isWebP) mimeType = 'image/webp';
+      
+      console.log('Detected MIME type:', mimeType);
+      
       // Convert to base64 in chunks to avoid call stack overflow
       console.log('Converting to base64 in chunks...');
       let base64String = '';
@@ -237,8 +254,9 @@ async function generateArtwork(prompt, style, env) {
         base64String += btoa(chunkString);
       }
       
-      const dataUrl = `data:image/png;base64,${base64String}`;
+      const dataUrl = `data:${mimeType};base64,${base64String}`;
       console.log('Converted ReadableStream to data URL, length:', dataUrl.length);
+      console.log('Data URL preview:', dataUrl.substring(0, 100) + '...');
       return dataUrl;
     }
     
