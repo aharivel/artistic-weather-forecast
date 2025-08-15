@@ -192,12 +192,49 @@ async function generateArtwork(prompt, style, env) {
     console.log('AI response received');
     console.log('Response type:', typeof response);
     console.log('Response constructor:', response?.constructor?.name);
-    console.log('Response keys:', Object.keys(response || {}));
-    console.log('Full response:', JSON.stringify(response, null, 2));
     
     if (!response) {
       throw new Error('No response from AI model');
     }
+    
+    // Handle ReadableStream response (common for image generation)
+    if (response instanceof ReadableStream) {
+      console.log('Response is ReadableStream, converting to ArrayBuffer...');
+      const reader = response.getReader();
+      const chunks = [];
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      
+      // Combine all chunks into a single Uint8Array
+      const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+      const combinedArray = new Uint8Array(totalLength);
+      let offset = 0;
+      
+      for (const chunk of chunks) {
+        combinedArray.set(chunk, offset);
+        offset += chunk.length;
+      }
+      
+      console.log('Combined array length:', combinedArray.length);
+      console.log('First 10 bytes:', Array.from(combinedArray.slice(0, 10)));
+      
+      if (combinedArray.length === 0) {
+        throw new Error('Empty image data received from AI model');
+      }
+      
+      const base64String = btoa(String.fromCharCode(...combinedArray));
+      const dataUrl = `data:image/png;base64,${base64String}`;
+      console.log('Converted ReadableStream to data URL, length:', dataUrl.length);
+      return dataUrl;
+    }
+    
+    // Handle other response formats
+    console.log('Response keys:', Object.keys(response || {}));
+    console.log('Full response:', JSON.stringify(response, null, 2));
     
     // Check different possible response formats
     if (response.image) {
