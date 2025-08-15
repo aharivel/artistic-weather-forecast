@@ -808,7 +808,7 @@ async function getIndexHTML() {
                     
                     const link = document.createElement('a');
                     link.href = url;
-                    link.download = \`weather-landscape-\${Date.now()}.png\`;
+                    link.download = 'weather-landscape-' + Date.now() + '.png';
                     link.click();
                     
                     // Clean up
@@ -828,7 +828,7 @@ async function getIndexHTML() {
                     url: window.location.href
                 });
             } else {
-                const text = \`Check out this realistic weather landscape: \${currentImageData.artPrompt}\`;
+                const text = 'Check out this realistic weather landscape: ' + currentImageData.artPrompt;
                 navigator.clipboard.writeText(text);
                 alert('Content copied to clipboard!');
             }
