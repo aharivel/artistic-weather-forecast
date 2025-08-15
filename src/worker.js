@@ -193,9 +193,34 @@ async function generateArtwork(prompt, style, env) {
     console.log('Response type:', typeof response);
     console.log('Response constructor:', response?.constructor?.name);
     console.log('Response keys:', Object.keys(response || {}));
+    console.log('Full response:', JSON.stringify(response, null, 2));
     
     if (!response) {
       throw new Error('No response from AI model');
+    }
+    
+    // Check different possible response formats
+    if (response.image) {
+      console.log('Found response.image');
+    } else if (response instanceof Uint8Array) {
+      console.log('Response is direct Uint8Array');
+      const base64String = btoa(String.fromCharCode(...response));
+      const dataUrl = `data:image/png;base64,${base64String}`;
+      console.log('Converted direct Uint8Array to data URL, length:', dataUrl.length);
+      return dataUrl;
+    } else if (response instanceof ArrayBuffer) {
+      console.log('Response is direct ArrayBuffer');
+      const uint8Array = new Uint8Array(response);
+      const base64String = btoa(String.fromCharCode(...uint8Array));
+      const dataUrl = `data:image/png;base64,${base64String}`;
+      console.log('Converted direct ArrayBuffer to data URL, length:', dataUrl.length);
+      return dataUrl;
+    } else {
+      console.log('Checking other possible properties...');
+      console.log('response.result:', !!response.result);
+      console.log('response.data:', !!response.data);
+      console.log('response.output:', !!response.output);
+      console.log('response.generated_image:', !!response.generated_image);
     }
     
     // For image generation, the response should have an image property
@@ -224,9 +249,23 @@ async function generateArtwork(prompt, style, env) {
       console.log('=== IMAGE GENERATION DEBUG END ===');
       
       return dataUrl;
+    } else if (response.result?.image) {
+      console.log('Found image in response.result');
+      const base64String = typeof response.result.image === 'string' 
+        ? response.result.image 
+        : btoa(String.fromCharCode(...new Uint8Array(response.result.image)));
+      const dataUrl = `data:image/png;base64,${base64String}`;
+      return dataUrl;
+    } else if (response.data) {
+      console.log('Found response.data, treating as image data');
+      const uint8Array = new Uint8Array(response.data);
+      const base64String = btoa(String.fromCharCode(...uint8Array));
+      const dataUrl = `data:image/png;base64,${base64String}`;
+      return dataUrl;
     } else {
-      console.error('No image property in response:', response);
-      throw new Error('No image data in AI response');
+      console.error('No image property found in response structure:', response);
+      console.error('Available properties:', Object.keys(response || {}));
+      throw new Error(`No image data in AI response. Response keys: ${Object.keys(response || {}).join(', ')}`);
     }
   } catch (error) {
     console.error('Error in generateArtwork:', error);
@@ -237,7 +276,7 @@ async function generateArtwork(prompt, style, env) {
 
 function getModelByStyle(style) {
   const models = {
-    'stable-diffusion': '@cf/stabilityai/stable-diffusion-xl-base-1.0',
+    'stable-diffusion': '@cf/runwayml/stable-diffusion-v1-5-inpainting',
     'flux': '@cf/black-forest-labs/flux-1-schnell',
     'dreamshaper': '@cf/lykon/dreamshaper-8-lcm',
     'realistic': '@cf/bytedance/stable-diffusion-xl-lightning'

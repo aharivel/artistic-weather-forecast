@@ -13,3 +13,7 @@ account_id = "e2b2e18c60bca9c5eb2578151d9c392e"
 [ai]
 binding = "AI"
 
+[observability]
+enabled = true
+head_sampling_rate = 1
+
