@@ -348,8 +348,6 @@ async function generateArtwork(prompt, style, env) {
 function getModelByStyle(style) {
   const models = {
     'stable-diffusion': '@cf/stabilityai/stable-diffusion-xl-base-1.0',
-    'flux': '@cf/black-forest-labs/flux-1-schnell',
-    'dreamshaper': '@cf/lykon/dreamshaper-8-lcm',
     'realistic': '@cf/bytedance/stable-diffusion-xl-lightning'
   };
   
@@ -536,6 +534,28 @@ async function getIndexHTML() {
             text-align: center;
         }
         
+        .image-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+        
+        .image-title h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        
+        .image-title .forecast-summary {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
         .art-prompt {
             background: #e8f4fd;
             padding: 20px;
@@ -617,8 +637,6 @@ async function getIndexHTML() {
                 <select id="style">
                     <option value="realistic">Photorealistic</option>
                     <option value="stable-diffusion">Professional</option>
-                    <option value="flux">Natural</option>
-                    <option value="dreamshaper">Cinematic</option>
                 </select>
             </div>
             
@@ -638,6 +656,7 @@ async function getIndexHTML() {
         </div>
         
         <div class="result-section" id="result">
+            <div class="image-title" id="imageTitle"></div>
             <div class="art-prompt" id="artPrompt"></div>
             <img class="generated-image" id="generatedImage" alt="Generated landscape photo">
             <div class="action-buttons">
@@ -732,9 +751,42 @@ async function getIndexHTML() {
         }
         
         function showResult(result) {
+            // Generate contextual title
+            const titleHtml = generateImageTitle(currentWeatherData);
+            document.getElementById('imageTitle').innerHTML = titleHtml;
+            
             document.getElementById('artPrompt').textContent = result.artPrompt;
             document.getElementById('generatedImage').src = result.imageUrl;
             document.getElementById('result').style.display = 'block';
+        }
+        
+        function generateImageTitle(weatherData) {
+            if (!weatherData || !weatherData.forecast || !weatherData.forecast.length) {
+                return '<h3>Weather Landscape</h3>';
+            }
+            
+            const location = weatherData.location || 'Unknown Location';
+            const firstForecast = weatherData.forecast[0];
+            const date = new Date(firstForecast.datetime).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            // Create a summary of current conditions
+            const temp = firstForecast.temperature;
+            const description = firstForecast.description;
+            const humidity = firstForecast.humidity;
+            const windSpeed = Math.round(firstForecast.windSpeed * 10) / 10; // Round to 1 decimal
+            
+            const summary = `${temp}°C, ${description}, ${humidity}% humidity, ${windSpeed} m/s wind`;
+            
+            return `
+                <h3>${location}</h3>
+                <div>${date}</div>
+                <div class="forecast-summary">${summary}</div>
+            `;
         }
         
         function saveImage() {
