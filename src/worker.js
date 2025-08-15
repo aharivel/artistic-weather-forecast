@@ -276,7 +276,7 @@ async function generateArtwork(prompt, style, env) {
 
 function getModelByStyle(style) {
   const models = {
-    'stable-diffusion': '@cf/runwayml/stable-diffusion-v1-5-inpainting',
+    'stable-diffusion': '@cf/stabilityai/stable-diffusion-xl-base-1.0',
     'flux': '@cf/black-forest-labs/flux-1-schnell',
     'dreamshaper': '@cf/lykon/dreamshaper-8-lcm',
     'realistic': '@cf/bytedance/stable-diffusion-xl-lightning'
