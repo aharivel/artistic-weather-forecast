@@ -1,14 +1,14 @@
-# Artistic Weather Forecast Application
+# Realistic Weather Landscape Generator
 
-Transform weather forecasts into generative art through an AI chain.
+Transform weather forecasts into photorealistic landscape scenes through an AI chain.
 
 ## Features
 
 - **Location-based weather data** via OpenWeatherMap API
-- **AI-powered artistic interpretation** using Google Gemini 2.0 Flash
-- **Image generation** through Cloudflare Workers AI
+- **AI-powered landscape descriptions** using Google Gemini 2.0 Flash  
+- **Photorealistic image generation** through Cloudflare Workers AI
 - **Mobile-first responsive design**
-- **Multiple artistic styles** (Stable Diffusion, FLUX, DreamShaper, Realistic)
+- **Multiple photography styles** (Photorealistic, Professional, Natural, Cinematic)
 - **Save and share functionality**
 
 ## Setup
@@ -40,13 +40,13 @@ npm run dev
 
 - `GET /` - Main application interface
 - `POST /api/weather` - Fetch weather data for a location
-- `POST /api/generate-art` - Generate artistic interpretation
+- `POST /api/generate-art` - Generate realistic landscape
 
 ## Technical Architecture
 
 1. **Weather Data Collection**: OpenWeatherMap API provides 2-3 day forecasts
-2. **AI Analysis**: Google Gemini 2.0 Flash interprets weather data into artistic concepts
-3. **Image Generation**: Cloudflare Workers AI generates artwork based on the interpretation
+2. **AI Analysis**: Google Gemini 2.0 Flash interprets weather data into realistic landscape descriptions
+3. **Image Generation**: Cloudflare Workers AI generates photorealistic landscapes based on the descriptions
 4. **Responsive UI**: Mobile-first design with loading states and debug information
 
 ## Security

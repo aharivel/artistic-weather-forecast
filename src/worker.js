@@ -131,19 +131,21 @@ async function generateArtPrompt(weatherData, geminiApiKey) {
     `${f.datetime}: ${f.description}, ${f.temperature}°C, humidity ${f.humidity}%, wind ${f.windSpeed}m/s`
   ).join('\n');
   
-  const prompt = `Transform this weather forecast into an artistic concept for image generation. Focus on the WEATHER PHENOMENA themselves, not decorative elements or settings.
+  const prompt = `Transform this weather forecast into a realistic landscape photography prompt. Create a photorealistic scene that accurately depicts the current weather conditions and environment.
 
 Weather Data for ${weatherData.location}:
 ${weatherSummary}
 
-Create a detailed artistic prompt that captures the essence and patterns of these weather conditions. Think about:
-- Visual metaphors for temperature variations
-- Artistic representation of weather phenomena (rain, clouds, wind, etc.)
-- Color palettes that reflect the atmospheric conditions
-- Abstract or impressionistic interpretations of meteorological data
-- Dynamic elements that show weather changes over time
+Create a detailed photography prompt for a realistic landscape scene. Consider:
+- Realistic outdoor landscapes matching the location's geography
+- Accurate weather conditions (clouds, precipitation, visibility)
+- Natural lighting conditions based on temperature and time of day
+- Seasonal elements appropriate to the weather patterns
+- Environmental details like vegetation, terrain, and atmosphere
+- Professional photography composition and lighting
+- Photorealistic style with natural colors and lighting
 
-Respond with a concise but vivid artistic prompt (under 200 words) that focuses purely on weather phenomena visualization, not landscapes or environments.`;
+Generate a photography prompt (under 200 words) describing a realistic landscape scene that authentically represents these weather conditions. Focus on natural environments, realistic lighting, and accurate weather portrayal suitable for landscape photography.`;
 
   const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
     method: 'POST',
@@ -602,7 +604,7 @@ async function getIndexHTML() {
 </head>
 <body>
     <div class="container">
-        <h1>🎨 Artistic Weather Forecast</h1>
+        <h1>📸 Realistic Weather Landscapes</h1>
         
         <div class="input-section">
             <div class="form-group">
@@ -611,21 +613,21 @@ async function getIndexHTML() {
             </div>
             
             <div class="form-group">
-                <label for="style">Artistic Style</label>
+                <label for="style">Photography Style</label>
                 <select id="style">
-                    <option value="stable-diffusion">Stable Diffusion</option>
-                    <option value="flux">FLUX</option>
-                    <option value="dreamshaper">DreamShaper</option>
-                    <option value="realistic">Realistic</option>
+                    <option value="realistic">Photorealistic</option>
+                    <option value="stable-diffusion">Professional</option>
+                    <option value="flux">Natural</option>
+                    <option value="dreamshaper">Cinematic</option>
                 </select>
             </div>
             
-            <button class="generate-btn" onclick="generateArt()">Generate Artistic Forecast</button>
+            <button class="generate-btn" onclick="generateArt()">Generate Weather Landscape</button>
         </div>
         
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <p>Creating your artistic weather forecast...</p>
+            <p>Creating your realistic weather landscape...</p>
         </div>
         
         <div class="error" id="error"></div>
@@ -637,7 +639,7 @@ async function getIndexHTML() {
         
         <div class="result-section" id="result">
             <div class="art-prompt" id="artPrompt"></div>
-            <img class="generated-image" id="generatedImage" alt="Generated artwork">
+            <img class="generated-image" id="generatedImage" alt="Generated landscape photo">
             <div class="action-buttons">
                 <button class="action-btn" onclick="saveImage()">Save Image</button>
                 <button class="action-btn" onclick="shareResult()">Share</button>
@@ -756,7 +758,7 @@ async function getIndexHTML() {
                     
                     const link = document.createElement('a');
                     link.href = url;
-                    link.download = \`artistic-weather-\${Date.now()}.png\`;
+                    link.download = \`weather-landscape-\${Date.now()}.png\`;
                     link.click();
                     
                     // Clean up
@@ -771,12 +773,12 @@ async function getIndexHTML() {
         function shareResult() {
             if (navigator.share && currentImageData) {
                 navigator.share({
-                    title: 'Artistic Weather Forecast',
+                    title: 'Realistic Weather Landscape',
                     text: currentImageData.artPrompt,
                     url: window.location.href
                 });
             } else {
-                const text = \`Check out this artistic weather forecast: \${currentImageData.artPrompt}\`;
+                const text = \`Check out this realistic weather landscape: \${currentImageData.artPrompt}\`;
                 navigator.clipboard.writeText(text);
                 alert('Content copied to clipboard!');
             }
