@@ -177,31 +177,74 @@ async function generateArtwork(prompt, style, ai) {
   try {
     const modelName = getModelByStyle(style);
     
-    console.log(`Generating artwork with model: ${modelName}`);
-    console.log(`Prompt: ${prompt.substring(0, 100)}...`);
+    console.log(`=== IMAGE GENERATION DEBUG ===`);
+    console.log(`Model: ${modelName}`);
+    console.log(`Style: ${style}`);
+    console.log(`Full prompt: ${prompt}`);
+    console.log(`Prompt length: ${prompt.length}`);
     
-    const response = await ai.run(modelName, {
-      prompt: prompt,
-      num_steps: 20,
-      guidance: 7.5,
-      strength: 1,
-    });
+    const aiParams = getModelParameters(modelName, prompt);
+    console.log('AI parameters:', JSON.stringify(aiParams, null, 2));
     
-    console.log('AI response type:', typeof response);
-    console.log('AI response length:', response?.length || 'unknown');
+    console.log('Calling AI.run()...');
+    const response = await ai.run(modelName, aiParams);
+    
+    console.log('AI response received');
+    console.log('Response type:', typeof response);
+    console.log('Response constructor:', response?.constructor?.name);
+    console.log('Response length/size:', response?.length || response?.byteLength || 'unknown');
+    
+    if (response instanceof ArrayBuffer) {
+      console.log('Response is ArrayBuffer, size:', response.byteLength);
+    } else if (response instanceof Uint8Array) {
+      console.log('Response is Uint8Array, length:', response.length);
+    } else {
+      console.log('Response is other type, trying to inspect:', Object.keys(response || {}));
+    }
     
     if (!response) {
       throw new Error('No response from AI model');
     }
     
-    // Convert ArrayBuffer to base64 data URL
-    const uint8Array = new Uint8Array(response);
+    if ((response instanceof ArrayBuffer && response.byteLength === 0) || 
+        (response.length !== undefined && response.length === 0)) {
+      throw new Error('Empty response from AI model');
+    }
+    
+    let uint8Array;
+    if (response instanceof ArrayBuffer) {
+      uint8Array = new Uint8Array(response);
+    } else if (response instanceof Uint8Array) {
+      uint8Array = response;
+    } else {
+      console.log('Attempting to convert response to Uint8Array...');
+      uint8Array = new Uint8Array(response);
+    }
+    
+    console.log('Uint8Array length:', uint8Array.length);
+    console.log('First 10 bytes:', Array.from(uint8Array.slice(0, 10)));
+    
+    if (uint8Array.length === 0) {
+      throw new Error('Generated image data is empty');
+    }
+    
+    // Check if it looks like a valid image (PNG header should start with [137, 80, 78, 71])
+    const pngHeader = [137, 80, 78, 71];
+    const startsWithPNG = pngHeader.every((byte, index) => uint8Array[index] === byte);
+    console.log('Starts with PNG header:', startsWithPNG);
+    
     const base64String = btoa(String.fromCharCode(...uint8Array));
+    console.log('Base64 string length:', base64String.length);
+    console.log('Base64 preview:', base64String.substring(0, 50) + '...');
+    
     const dataUrl = `data:image/png;base64,${base64String}`;
+    console.log('Final data URL length:', dataUrl.length);
+    console.log('=== IMAGE GENERATION DEBUG END ===');
     
     return dataUrl;
   } catch (error) {
     console.error('Error in generateArtwork:', error);
+    console.error('Error stack:', error.stack);
     throw new Error(`Image generation failed: ${error.message}`);
   }
 }
@@ -214,7 +257,42 @@ function getModelByStyle(style) {
     'realistic': '@cf/bytedance/stable-diffusion-xl-lightning'
   };
   
-  return models[style] || models['stable-diffusion'];
+  const selectedModel = models[style] || models['stable-diffusion'];
+  console.log(`Style '${style}' mapped to model: ${selectedModel}`);
+  return selectedModel;
+}
+
+function getModelParameters(modelName, prompt) {
+  // Different models might need different parameters
+  const baseParams = {
+    prompt: prompt
+  };
+  
+  if (modelName.includes('flux')) {
+    return {
+      ...baseParams,
+      num_steps: 4,  // FLUX Schnell is optimized for fewer steps
+    };
+  } else if (modelName.includes('lightning')) {
+    return {
+      ...baseParams,
+      num_steps: 8,  // Lightning models are fast
+    };
+  } else if (modelName.includes('dreamshaper')) {
+    return {
+      ...baseParams,
+      num_steps: 8,
+      guidance: 7.5,
+    };
+  } else {
+    // Default Stable Diffusion parameters
+    return {
+      ...baseParams,
+      num_steps: 20,
+      guidance: 7.5,
+      strength: 1,
+    };
+  }
 }
 
 async function getIndexHTML() {
