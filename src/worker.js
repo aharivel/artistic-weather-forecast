@@ -60,7 +60,7 @@ async function handleArtGeneration(request, env) {
     const artPrompt = await generateArtPrompt(weatherData, env.GEMINI_API_KEY);
     console.log('Generated art prompt length:', artPrompt.length);
     
-    const imageUrl = await generateArtwork(artPrompt, artisticStyle, env.AI);
+    const imageUrl = await generateArtwork(artPrompt, artisticStyle, env);
     console.log('Generated image URL type:', typeof imageUrl);
     console.log('Image URL length:', imageUrl.length);
     
@@ -173,7 +173,7 @@ Respond with a concise but vivid artistic prompt (under 200 words) that focuses 
   return data.candidates[0].content.parts[0].text;
 }
 
-async function generateArtwork(prompt, style, ai) {
+async function generateArtwork(prompt, style, env) {
   try {
     const modelName = getModelByStyle(style);
     
@@ -186,58 +186,52 @@ async function generateArtwork(prompt, style, ai) {
     const aiParams = getModelParameters(modelName, prompt);
     console.log('AI parameters:', JSON.stringify(aiParams, null, 2));
     
-    console.log('Calling AI.run()...');
-    const response = await ai.run(modelName, aiParams);
+    // Use REST API instead of AI binding
+    const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_ACCOUNT_ID}/ai/run/${modelName}`;
+    console.log('API URL:', apiUrl);
     
-    console.log('AI response received');
-    console.log('Response type:', typeof response);
-    console.log('Response constructor:', response?.constructor?.name);
-    console.log('Response length/size:', response?.length || response?.byteLength || 'unknown');
+    console.log('Calling Cloudflare AI REST API...');
+    const response = await fetch(apiUrl, {
+      headers: { 
+        'Authorization': `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      method: 'POST',
+      body: JSON.stringify(aiParams),
+    });
     
-    if (response instanceof ArrayBuffer) {
-      console.log('Response is ArrayBuffer, size:', response.byteLength);
-    } else if (response instanceof Uint8Array) {
-      console.log('Response is Uint8Array, length:', response.length);
-    } else {
-      console.log('Response is other type, trying to inspect:', Object.keys(response || {}));
+    console.log('HTTP response status:', response.status);
+    console.log('HTTP response ok:', response.ok);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API error response:', errorText);
+      throw new Error(`API request failed: ${response.status} ${errorText}`);
     }
     
-    if (!response) {
-      throw new Error('No response from AI model');
+    const result = await response.json();
+    console.log('API response JSON:', JSON.stringify(result, null, 2));
+    
+    if (!result.success) {
+      throw new Error(`API returned error: ${JSON.stringify(result.errors || result)}`);
     }
     
-    if ((response instanceof ArrayBuffer && response.byteLength === 0) || 
-        (response.length !== undefined && response.length === 0)) {
-      throw new Error('Empty response from AI model');
+    // The image should be in result.result as base64
+    if (!result.result || !result.result.image) {
+      console.error('Unexpected response format:', result);
+      throw new Error('No image data in API response');
     }
     
-    let uint8Array;
-    if (response instanceof ArrayBuffer) {
-      uint8Array = new Uint8Array(response);
-    } else if (response instanceof Uint8Array) {
-      uint8Array = response;
-    } else {
-      console.log('Attempting to convert response to Uint8Array...');
-      uint8Array = new Uint8Array(response);
+    const base64Image = result.result.image;
+    console.log('Base64 image length:', base64Image.length);
+    console.log('Base64 preview:', base64Image.substring(0, 50) + '...');
+    
+    // Validate base64 format
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Image)) {
+      throw new Error('Invalid base64 image data received');
     }
     
-    console.log('Uint8Array length:', uint8Array.length);
-    console.log('First 10 bytes:', Array.from(uint8Array.slice(0, 10)));
-    
-    if (uint8Array.length === 0) {
-      throw new Error('Generated image data is empty');
-    }
-    
-    // Check if it looks like a valid image (PNG header should start with [137, 80, 78, 71])
-    const pngHeader = [137, 80, 78, 71];
-    const startsWithPNG = pngHeader.every((byte, index) => uint8Array[index] === byte);
-    console.log('Starts with PNG header:', startsWithPNG);
-    
-    const base64String = btoa(String.fromCharCode(...uint8Array));
-    console.log('Base64 string length:', base64String.length);
-    console.log('Base64 preview:', base64String.substring(0, 50) + '...');
-    
-    const dataUrl = `data:image/png;base64,${base64String}`;
+    const dataUrl = `data:image/png;base64,${base64Image}`;
     console.log('Final data URL length:', dataUrl.length);
     console.log('=== IMAGE GENERATION DEBUG END ===');
     
