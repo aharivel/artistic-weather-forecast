@@ -186,56 +186,48 @@ async function generateArtwork(prompt, style, env) {
     const aiParams = getModelParameters(modelName, prompt);
     console.log('AI parameters:', JSON.stringify(aiParams, null, 2));
     
-    // Use REST API instead of AI binding
-    const apiUrl = `https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_ACCOUNT_ID}/ai/run/${modelName}`;
-    console.log('API URL:', apiUrl);
+    console.log('Calling env.AI.run()...');
+    const response = await env.AI.run(modelName, aiParams);
     
-    console.log('Calling Cloudflare AI REST API...');
-    const response = await fetch(apiUrl, {
-      headers: { 
-        'Authorization': `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      method: 'POST',
-      body: JSON.stringify(aiParams),
-    });
+    console.log('AI response received');
+    console.log('Response type:', typeof response);
+    console.log('Response constructor:', response?.constructor?.name);
+    console.log('Response keys:', Object.keys(response || {}));
     
-    console.log('HTTP response status:', response.status);
-    console.log('HTTP response ok:', response.ok);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API error response:', errorText);
-      throw new Error(`API request failed: ${response.status} ${errorText}`);
+    if (!response) {
+      throw new Error('No response from AI model');
     }
     
-    const result = await response.json();
-    console.log('API response JSON:', JSON.stringify(result, null, 2));
-    
-    if (!result.success) {
-      throw new Error(`API returned error: ${JSON.stringify(result.errors || result)}`);
+    // For image generation, the response should have an image property
+    if (response.image) {
+      console.log('Found image in response');
+      console.log('Image type:', typeof response.image);
+      console.log('Image length:', response.image.length);
+      
+      // Convert Uint8Array to base64
+      let base64String;
+      if (response.image instanceof Uint8Array) {
+        base64String = btoa(String.fromCharCode(...response.image));
+      } else if (typeof response.image === 'string') {
+        base64String = response.image;
+      } else {
+        console.log('Converting image data to Uint8Array...');
+        const uint8Array = new Uint8Array(response.image);
+        base64String = btoa(String.fromCharCode(...uint8Array));
+      }
+      
+      console.log('Base64 string length:', base64String.length);
+      console.log('Base64 preview:', base64String.substring(0, 50) + '...');
+      
+      const dataUrl = `data:image/png;base64,${base64String}`;
+      console.log('Final data URL length:', dataUrl.length);
+      console.log('=== IMAGE GENERATION DEBUG END ===');
+      
+      return dataUrl;
+    } else {
+      console.error('No image property in response:', response);
+      throw new Error('No image data in AI response');
     }
-    
-    // The image should be in result.result as base64
-    if (!result.result || !result.result.image) {
-      console.error('Unexpected response format:', result);
-      throw new Error('No image data in API response');
-    }
-    
-    const base64Image = result.result.image;
-    console.log('Base64 image length:', base64Image.length);
-    console.log('Base64 preview:', base64Image.substring(0, 50) + '...');
-    
-    // Validate base64 format
-    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Image)) {
-      throw new Error('Invalid base64 image data received');
-    }
-    
-    const dataUrl = `data:image/png;base64,${base64Image}`;
-    console.log('Final data URL length:', dataUrl.length);
-    console.log('=== IMAGE GENERATION DEBUG END ===');
-    
-    return dataUrl;
   } catch (error) {
     console.error('Error in generateArtwork:', error);
     console.error('Error stack:', error.stack);
