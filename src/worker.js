@@ -243,16 +243,20 @@ async function generateArtwork(prompt, style, env) {
       
       console.log('Detected MIME type:', mimeType);
       
-      // Convert to base64 in chunks to avoid call stack overflow
-      console.log('Converting to base64 in chunks...');
-      let base64String = '';
-      const chunkSize = 8192; // Process 8KB at a time
+      // Convert to base64 properly - need to handle the full binary data correctly
+      console.log('Converting to base64...');
+      
+      // Convert Uint8Array to binary string first
+      let binaryString = '';
+      const chunkSize = 8192; // Process 8KB at a time to avoid call stack overflow
       
       for (let i = 0; i < combinedArray.length; i += chunkSize) {
         const chunk = combinedArray.slice(i, i + chunkSize);
-        const chunkString = String.fromCharCode(...chunk);
-        base64String += btoa(chunkString);
+        binaryString += String.fromCharCode(...chunk);
       }
+      
+      // Now convert the complete binary string to base64
+      const base64String = btoa(binaryString);
       
       const dataUrl = `data:${mimeType};base64,${base64String}`;
       console.log('Converted ReadableStream to data URL, length:', dataUrl.length);
