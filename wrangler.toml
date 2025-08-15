@@ -1,0 +1,14 @@
+name = "artistic-weather-forecast"
+main = "src/worker.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+# Environment variables will be set here
+
+# Secrets (set via wrangler secret put):
+# - OPENWEATHER_API_KEY
+# - GEMINI_API_KEY
+
+[ai]
+binding = "AI"
+
