@@ -780,13 +780,11 @@ async function getIndexHTML() {
             const humidity = firstForecast.humidity;
             const windSpeed = Math.round(firstForecast.windSpeed * 10) / 10; // Round to 1 decimal
             
-            const summary = `${temp}°C, ${description}, ${humidity}% humidity, ${windSpeed} m/s wind`;
+            const summary = temp + '°C, ' + description + ', ' + humidity + '% humidity, ' + windSpeed + ' m/s wind';
             
-            return `
-                <h3>${location}</h3>
-                <div>${date}</div>
-                <div class="forecast-summary">${summary}</div>
-            `;
+            return '<h3>' + location + '</h3>' +
+                   '<div>' + date + '</div>' +
+                   '<div class="forecast-summary">' + summary + '</div>';
         }
         
         function saveImage() {
