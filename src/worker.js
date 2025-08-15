@@ -50,19 +50,39 @@ async function handleArtGeneration(request, env) {
   try {
     const { weatherData, artisticStyle } = await request.json();
     
+    console.log('Starting art generation for:', weatherData.location);
+    console.log('Artistic style:', artisticStyle);
+    
+    if (!weatherData || !weatherData.forecast) {
+      throw new Error('Invalid weather data provided');
+    }
+    
     const artPrompt = await generateArtPrompt(weatherData, env.GEMINI_API_KEY);
+    console.log('Generated art prompt length:', artPrompt.length);
     
     const imageUrl = await generateArtwork(artPrompt, artisticStyle, env.AI);
+    console.log('Generated image URL type:', typeof imageUrl);
+    console.log('Image URL length:', imageUrl.length);
     
     return new Response(JSON.stringify({ 
       artPrompt, 
       imageUrl,
-      weatherData 
+      weatherData,
+      debug: {
+        promptLength: artPrompt.length,
+        style: artisticStyle,
+        timestamp: new Date().toISOString()
+      }
     }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Art generation error:', error);
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -154,19 +174,36 @@ Respond with a concise but vivid artistic prompt (under 200 words) that focuses 
 }
 
 async function generateArtwork(prompt, style, ai) {
-  const modelName = getModelByStyle(style);
-  
-  const response = await ai.run(modelName, {
-    prompt: prompt,
-    num_steps: 20,
-    guidance: 7.5,
-    strength: 1,
-  });
-  
-  const imageBlob = new Blob([response], { type: 'image/png' });
-  const imageUrl = URL.createObjectURL(imageBlob);
-  
-  return imageUrl;
+  try {
+    const modelName = getModelByStyle(style);
+    
+    console.log(`Generating artwork with model: ${modelName}`);
+    console.log(`Prompt: ${prompt.substring(0, 100)}...`);
+    
+    const response = await ai.run(modelName, {
+      prompt: prompt,
+      num_steps: 20,
+      guidance: 7.5,
+      strength: 1,
+    });
+    
+    console.log('AI response type:', typeof response);
+    console.log('AI response length:', response?.length || 'unknown');
+    
+    if (!response) {
+      throw new Error('No response from AI model');
+    }
+    
+    // Convert ArrayBuffer to base64 data URL
+    const uint8Array = new Uint8Array(response);
+    const base64String = btoa(String.fromCharCode(...uint8Array));
+    const dataUrl = `data:image/png;base64,${base64String}`;
+    
+    return dataUrl;
+  } catch (error) {
+    console.error('Error in generateArtwork:', error);
+    throw new Error(`Image generation failed: ${error.message}`);
+  }
 }
 
 function getModelByStyle(style) {
