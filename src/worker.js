@@ -226,7 +226,17 @@ async function generateArtwork(prompt, style, env) {
         throw new Error('Empty image data received from AI model');
       }
       
-      const base64String = btoa(String.fromCharCode(...combinedArray));
+      // Convert to base64 in chunks to avoid call stack overflow
+      console.log('Converting to base64 in chunks...');
+      let base64String = '';
+      const chunkSize = 8192; // Process 8KB at a time
+      
+      for (let i = 0; i < combinedArray.length; i += chunkSize) {
+        const chunk = combinedArray.slice(i, i + chunkSize);
+        const chunkString = String.fromCharCode(...chunk);
+        base64String += btoa(chunkString);
+      }
+      
       const dataUrl = `data:image/png;base64,${base64String}`;
       console.log('Converted ReadableStream to data URL, length:', dataUrl.length);
       return dataUrl;
